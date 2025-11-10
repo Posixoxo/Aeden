@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aware Eden: Exploring the depths of self-awareness and expanding perspectives">
+    <title>Subscribe To Newsletter</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Young+Serif&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar sticky">
+        <img src="Images/AaE.jpg" class="logo">
+        <ul class="nav-links">
+            <li><a href="index.html#home"><img src="Images/home.png" alt="home" class="nav-icons"></a></li>
+            <li><a href="index.html#about"><img src="Images/information-button.png" alt="about" class="nav-icons"></a></li>
+            <li><a href="index.html#blog"><img src="Images/blogging.png" alt="blog" class="nav-icons"></a></li>
+            <li><a href="index.html#resources"><img src="Images/resource-allocation.png" alt="resources" class="nav-icons"></a></li>
+            <li><a href="index.html#contact"><img src="Images/contact-us.png" alt="contact" class="nav-icons"></a></li>
+        </ul>
+    </nav>
+    
+    <!-- Subscription Section -->
+    <section class="subscription-section">
+        <h2>Subscribe to Our Newsletter</h2>
+        <p>Stay updated with the latest articles, resources, and insights on self-awareness and expanding perspectives.</p>
+        <form name="newsletter" method="POST" data-netlify="true" action="thankyou.html" class="subscription-form">
+            <input type="hidden" name="form-name" value="newsletter">
+            <input type="email" name="email" placeholder="Enter your email address" required>
+            <button type="submit">Subscribe</button>
+        </form>
+    </section>
+    
+
+
+         <!-- Footer -->
+         <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="#privacy-policy">Privacy Policy</a>
+                    <a href="#terms">Terms of Service</a>
+                </div>
+                <div class="contact-info">
+                    <p>mail.theeden@gmail.com</p>
+                    <div class="social-media">
+                        <!-- Social media icons go here -->
+                        <a href="https://x.com/AwareEden"><img src="images/twitter.png" alt="twitter" class="img-t"></a>
+                        <a href=""><img src="images/icon-instagram.svg" alt="instagram" class="img-t"></a>
+                        <a href=""><img src="images/icon-facebook.svg" alt="facebook" class="img-t"></a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+
+        
+        <form name="newsletter" netlify netlify-honeypot="bot-field" hidden>
+            <input type="email" name="email">
+          </form>
+    
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>

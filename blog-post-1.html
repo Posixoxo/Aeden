@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aware Eden: Exploring the depths of self-awareness and expanding perspectives">
+    <title>Aware Eden</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Young+Serif&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar sticky">
+        <img src="Images/AaE.jpg" class="logo">
+        <ul class="nav-links">
+            <li><a href="index.html#home"><img src="Images/home.png" alt="home" class="nav-icons"></a></li>
+            <li><a href="index.html#about"><img src="Images/information-button.png" alt="about" class="nav-icons"></a></li>
+            <li><a href="index.html#blog"><img src="Images/blogging.png" alt="blog" class="nav-icons"></a></li>
+            <li><a href="index.html#resources"><img src="Images/resource-allocation.png" alt="resources" class="nav-icons"></a></li>
+            <li><a href="index.html#contact"><img src="Images/contact-us.png" alt="contact" class="nav-icons"></a></li>
+        </ul>
+    </nav>
+
+    <section class="blog-posts-wrapper2">
+      <article class="blog-post">
+        <h1>Peeling Back the Layers: Embracing the Beauty of Intentional Living.</h1>
+        <div class="pic-head">
+            <img src="Images/AaE.jpg" alt="Author-profile" class="pic-img">
+            <div class="pic-liner">
+                <p>AEDEN</p>
+                <p class="post-date"><span id="current-date"></span></p>
+            </div>
+        </div>
+        <div class="post-content">
+            <p>Have you ever caught yourself wondering, “Who am I, really? Am I just a Netflix binge-watcher with a side hustle, or is there more to life than this?” I know I have. One minute I'm scrolling through social media, comparing my life to others, and the next, I'm questioning everything. It feels like, what’s my superpower? What makes me tick?
+            </p>
+            <p>
+                The thing is, figuring out who we are is not a one-and-done deal. It's a lifelong adventure – a messy, beautiful journey of peeling back layers, discovering new strengths, and facing our not-so-great weaknesses. And sometimes, what we find surprises us (hello, introvert who loves people-watching but also secretly craves alone time).
+            </p>
+            <p>
+                Understanding ourselves isn’t about reading a self-help book or finding a magic formula online. It’s about living life, making mistakes, and learning from them. The more we discover, the more we realize how much it shapes our decisions – from the small stuff like what coffee shop to visit, to the big stuff like switching careers or setting boundaries.
+            </p>
+            <p>
+                So, who are you at your core? It’s not about the labels – your job title, your hobbies, or how you define yourself in small talk. It’s about your true essence: what makes you, you. The things that influence how you see the world, make decisions, and treat yourself and others.
+            </p>
+            <p>
+                The cool thing is, we’re not static. We evolve. The person you were five years ago isn’t the same person you are today. We grow, learn, and discover parts of ourselves we never knew existed. And that’s pretty awesome.
+            </p>
+            <p>
+                Now, you might be thinking, “Okay, that’s great, but how does this impact my everyday life?” Well, when you understand who you are, you start making choices that align with your values, not just following the crowd. You stop second-guessing yourself and start living more authentically. Life just feels… more right.
+            </p>
+            <p>
+                Knowing your core values makes tough decisions easier. Should you take that new job? Stay in that relationship? Set that boundary? When you know what truly matters to you, the path forward becomes clearer. You stop living on autopilot and start driving your own life. 
+            </p>
+            <p>
+                The journey doesn’t end here – it’s ongoing. And I’m here for it.
+            </p>
+            <p>
+                Want to dive deeper? Let’s chat about it.
+            </p>
+            <p>
+                What’s the most surprising thing you’ve learned about yourself recently? Share your story, and let’s figure this thing out together.
+            </p>
+        </div>
+        <div class="social-buttons">
+            <button class="like-button" id="like-btn">♥ Like</button>
+            <button class="share-button" id="share-btn">⤴ Share</button>
+            <a href="Subscribe.html"><button class="subscribe-button">Subscribe</button></a>
+        </div>
+      </article>
+    </section>
+
+    <section class="comments-section">
+        <h2>Comments</h2>
+        <form name="comments-blog-post-1" method="POST" data-netlify="true" class="comment-form">
+            <input type="hidden" name="form-name" value="comments-blog-post-1">
+            <input type="hidden" name="post" value="blog-post-1">
+            <textarea name="comment" placeholder="Write your comment here..." required></textarea>
+            <button type="submit">Submit Comment</button>
+        </form>
+        <div id="comments-container">
+            <!-- For comments to be manually added, it would require using a service -->
+        </div>
+    </section>
+
+
+
+
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="#privacy-policy">Privacy Policy</a>
+                <a href="#terms">Terms of Service</a>
+            </div>
+            <div class="contact-info">
+                <p>mail.theeden@gmail.com</p>
+                <div class="social-media">
+                    <!-- Social media icons go here -->
+                    <a href="https://x.com/AwareEden"><img src="images/twitter.png" alt="twitter" class="img-t"></a>
+                    <a href=""><img src="images/icon-instagram.svg" alt="instagram" class="img-t"></a>
+                    <a href=""><img src="images/icon-facebook.svg" alt="facebook" class="img-t"></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+    <script src="script.js"></script>
+</body>
+</html>

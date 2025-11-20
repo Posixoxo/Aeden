@@ -68,6 +68,7 @@ body {
 .hero {
     background-image: url('Images/AaE.jpg');
     background-size: cover;
+    width: 100%;
     background-position: center;
     height: 100vh;
     display: flex;
@@ -1315,4 +1316,23 @@ body {
         padding: 0;
         height: auto;
       }
+
+      .divide{
+        display: flex;
+        flex-direction: row;
+      }
+
+      .about-section{
+        flex: 1.5;
+      }
+
+      .divide2{
+        display: flex;
+        flex-direction: column;
+        flex: 2;
+        margin: 0;
+        padding: 0;
+      }
+
+
   }

@@ -22,18 +22,22 @@
         }
 
         .auth-container {
-            background: #EAEAEA;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px #3C3C3C;
             overflow: hidden;
             max-width: 450px;
             width: 100%;
         }
 
+        .mod-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+
         .auth-header {
-            background-color: #3C3C3C;
-            color: #EAEAEA;
-            padding: 30px;
+            color: #3C3C3C;
+            padding: 30px 30px 0 30px;
             text-align: center;
         }
 
@@ -54,25 +58,37 @@
 
         .tab-buttons {
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
+            flex-direction: row;
+            justify-items: center;
+            align-items: center;
+            text-align: center;
+            gap: 6px;
+            margin: 40px 82px 0 82px;
         }
 
         .tab-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            background: #f0f0f0;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
+            font-size: 14px;
             transition: all 0.3s;
+        }
+
+        .tab-btn:hover{
+            opacity: 0.7;
+        }
+
+        .bait-text{
+            text-align: center;
+            font-size: 14px;
         }
 
         .tab-btn.active {
             background-color: #2A2A2A;
             color: white;
+        }
+
+        /* Hide tab buttons when not on login page */
+        .tab-buttons.hidden {
+            display: none;
         }
 
         .form-container {
@@ -91,6 +107,7 @@
 
         .form-group {
             margin-bottom: 20px;
+            font-size: 13px;
         }
 
         .form-group label {
@@ -104,7 +121,7 @@
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            border-radius: 15px;
             font-size: 15px;
             transition: border 0.3s;
         }
@@ -120,11 +137,12 @@
             background-color: #2A2A2A;
             color: #EAEAEA;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 25px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s;
+            margin-bottom: 40px;
         }
 
         .submit-btn:hover {
@@ -157,23 +175,34 @@
             opacity: 0.6;
             pointer-events: none;
         }
+
+        /* Add back-to-login link styling */
+        .back-to-login {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-to-login a {
+            color: #2A2A2A;
+            text-decoration: none;
+            font-size: 14px;
+            transition: opacity 0.3s;
+        }
+
+        .back-to-login a:hover {
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
     <div class="auth-container">
         <div class="auth-header">
-            <h1>Welcome Back!</h1>
-            <p>Login or create an account to start posting</p>
+            <img src="Images/Mod.jpg" alt="auth-img" class="mod-img">
+            <h1 id="auth-title">Welcome Back!</h1>
+            <p id="auth-subtitle">Login or create an account to start posting</p>
         </div>
         
         <div class="auth-body">
-            <div class="tab-buttons">
-                <button class="tab-btn active" onclick="switchTab('login')">Login</button>
-                <button class="tab-btn" onclick="switchTab('register')">Register</button>
-            </div>
-
-            <div id="error-message" class="error-message"></div>
-            <div id="success-message" class="success-message"></div>
 
             <!-- Login Form -->
             <div id="login-form" class="form-container active">
@@ -186,9 +215,18 @@
                         <label>Password</label>
                         <input type="password" id="login-password" required>
                     </div>
-                    <button type="submit" class="submit-btn">Login</button>
+                    <button type="submit" class="submit-btn">LOGIN</button>
                 </form>
             </div>
+
+            <!-- Login page -->
+            <div class="tab-buttons" id="tab-buttons-container">
+                <p class="bait-text">Don't have an account?</p>
+                <a class="tab-btn" onclick="switchTab('register')">Register</a>
+            </div>
+
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
 
             <!-- Register Form -->
             <div id="register-form" class="form-container">
@@ -207,6 +245,11 @@
                     </div>
                     <button type="submit" class="submit-btn">Create Account</button>
                 </form>
+
+                <!-- back to login link -->
+                <div class="back-to-login">
+                    <a href="#" onclick="switchTab('login'); return false;">Already have an account? Login</a>
+                </div>
             </div>
         </div>
     </div>
@@ -218,16 +261,15 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-        // 🔥 REPLACE THIS WITH YOUR FIREBASE CONFIG FROM STEP 1B
         const firebaseConfig = {
-        apiKey: "AIzaSyB34DhbeaIzmRFowWayXLgR68Zlv-dOqQA",
-        authDomain: "aeden-168f6.firebaseapp.com",
-        projectId: "aeden-168f6",
-        storageBucket: "aeden-168f6.firebasestorage.app",
-        messagingSenderId: "559755104565",
-        appId: "1:559755104565:web:9e0fc3c6c58f985c05bc7c",
-        measurementId: "G-K8R4B6EF1T"
-       };
+            apiKey: "AIzaSyB34DhbeaIzmRFowWayXLgR68Zlv-dOqQA",
+            authDomain: "aeden-168f6.firebaseapp.com",
+            projectId: "aeden-168f6",
+            storageBucket: "aeden-168f6.firebasestorage.app",
+            messagingSenderId: "559755104565",
+            appId: "1:559755104565:web:9e0fc3c6c58f985c05bc7c",
+            measurementId: "G-K8R4B6EF1T"
+        };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -245,10 +287,11 @@
     </script>
 
     <script>
+        //  SwitchTab function to hide/show tab buttons and update header
         function switchTab(tab) {
-            // Update buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            const tabButtonsContainer = document.getElementById('tab-buttons-container');
+            const authTitle = document.getElementById('auth-title');
+            const authSubtitle = document.getElementById('auth-subtitle');
 
             // Update forms
             document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
@@ -256,6 +299,20 @@
 
             // Clear messages
             hideMessages();
+
+            if (tab === 'register') {
+                // Hide tab buttons on register page
+                tabButtonsContainer.classList.add('hidden');
+                // Update header text
+                authTitle.textContent = 'Create Account';
+                authSubtitle.textContent = 'Sign up to start posting amazing content';
+            } else {
+                // Show tab buttons on login page
+                tabButtonsContainer.classList.remove('hidden');
+                // Reset header text
+                authTitle.textContent = 'Welcome Back!';
+                authSubtitle.textContent = 'Login or create an account to start posting';
+            }
         }
 
         function showError(message) {
@@ -276,6 +333,7 @@
             document.getElementById('success-message').style.display = 'none';
         }
 
+        // 🔧 FIX: Updated handleRegister to redirect to dashboard instead of login
         async function handleRegister(event) {
             event.preventDefault();
             hideMessages();
@@ -303,7 +361,9 @@
                     createdAt: new Date().toISOString()
                 });
 
-                showSuccess('Account created successfully! Redirecting...');
+                showSuccess('Account created successfully! Redirecting to your dashboard...');
+                
+                // 🔧 FIX: Redirect to dashboard directly instead of login page
                 setTimeout(() => window.location.href = 'dashboard.html', 2000);
 
             } catch (error) {
@@ -312,6 +372,8 @@
                     errorMessage = 'This email is already registered.';
                 } else if (error.code === 'auth/weak-password') {
                     errorMessage = 'Password is too weak. Use at least 6 characters.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
                 }
                 showError(errorMessage);
             } finally {
@@ -338,7 +400,7 @@
 
             } catch (error) {
                 let errorMessage = 'Login failed. Please check your credentials.';
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     errorMessage = 'Invalid email or password.';
                 } else if (error.code === 'auth/too-many-requests') {
                     errorMessage = 'Too many attempts. Please try again later.';
@@ -346,7 +408,7 @@
                 showError(errorMessage);
             } finally {
                 btn.classList.remove('loading');
-                btn.textContent = 'Login';
+                btn.textContent = 'LOGIN';
             }
         }
     </script>

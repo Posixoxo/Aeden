@@ -68,6 +68,7 @@ body {
 .hero {
     background-image: url('Images/See.jpg');
     background-size: cover;
+    object-fit: cover;
     width: 100%;
     background-position: center;
     height: 100vh;

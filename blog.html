@@ -60,6 +60,7 @@
     .comment-input textarea{flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;min-height:40px}
     .comment-input button{padding:8px 12px;border-radius:8px;border:none;background:#2A2A2A;color:white;cursor:pointer}
     .small-muted{font-size:12px;color:#999;font-style:italic}
+    .btn-small{padding:12px 3px 0 3px; font-size:12px; border:none; border-radius:6px; cursor:pointer; background:#EAEAEA; transition:background .3s}
     @media(max-width:768px){.navbar{padding:10px 15px}.navbar-brand{font-size:18px}.hero h1{font-size:32px}.posts-grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -162,6 +163,14 @@
       const posts = [];
       snapshot.forEach(snap => posts.push({ id: snap.id, ...snap.data() }));
       renderPosts(posts);
+      
+      // 🔧 FIX: Update modal comments if modal is open
+      if (currentPostId) {
+        const currentPost = posts.find(p => p.id === currentPostId);
+        if (currentPost) {
+          loadModalComments(currentPost);
+        }
+      }
     }, (err) => {
       console.error('Posts onSnapshot error:', err);
       postsContainer.innerHTML = `<div class="empty-state"><h3>Error loading posts</h3><p>Please refresh the page.</p></div>`;
@@ -255,7 +264,6 @@
       if (!post) return;
       currentPostId = postId;
       
-      // ✅ FIX: Set aria-hidden to false when modal opens
       const modal = document.getElementById('post-modal');
       modal.setAttribute('aria-hidden', 'false');
       
@@ -264,21 +272,17 @@
       const date = post.createdAt && post.createdAt.toDate ? post.createdAt.toDate().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) : '';
       document.getElementById('modal-date').textContent = date;
       
-      // ✅ IMPROVED: Show content as HTML (preserves inline images and formatting)
       const modalContent = document.getElementById('modal-content');
       modalContent.innerHTML = post.content || '';
       
-      // images rendered separately (gallery images only)
       const modalImages = document.getElementById('modal-images');
       if (post.images && post.images.length) {
         modalImages.innerHTML = post.images.map(img => `<img src="${img.url}" alt="Post image">`).join('');
       } else modalImages.innerHTML = '';
       
-      // like count
       const likesCount = Array.isArray(post.likes) ? post.likes.length : (post.likes || 0);
       document.getElementById('modal-like-count').textContent = likesCount;
       
-      // Update like button style
       const modalLikeBtn = document.getElementById('modal-like-btn');
       if (window.currentUser && Array.isArray(post.likes) && post.likes.includes(window.currentUser.uid)) {
         modalLikeBtn.classList.add('liked');
@@ -286,7 +290,6 @@
         modalLikeBtn.classList.remove('liked');
       }
       
-      // Load comments from array in post document
       loadModalComments(post);
       
       modal.classList.add('active');
@@ -294,7 +297,6 @@
     }
   
     // Load comments from post.comments array
-    // now includes edit/delete buttons for comment authors
     function loadModalComments(post) {
       const comments = Array.isArray(post.comments) ? post.comments : [];
       const commentsEl = document.getElementById('modal-comments');
@@ -304,24 +306,19 @@
         return;
       }
   
-      // build html with controls for the author of each comment
       commentsEl.innerHTML = comments.map(c => {
-        // ensure each comment has an id (older comments might not)
         const id = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : `${c.authorId}-${Math.random().toString(36).slice(2,9)}`);
         const authorIsCurrent = window.currentUser && window.currentUser.uid === c.authorId;
-        // normal view
         const viewHtml = `
           <div class="meta">${escapeHtml(c.authorName || 'Someone')} • ${c.createdAt ? formatTimestamp(c.createdAt) : ''}</div>
           <div class="text">${escapeHtml(c.text)}</div>
         `;
-        // controls if author
         const controls = authorIsCurrent ? `
           <div class="comment-controls">
             <button class="btn-small" onclick="startEditComment('${escapeHtml(id)}')">Edit</button>
             <button class="btn-small btn-danger" onclick="deleteComment('${escapeHtml(id)}')">Delete</button>
           </div>
         ` : '';
-        // store the comment id as data-* for reference in DOM (helps when editing)
         return `
           <div class="comment" data-comment-id="${escapeHtml(id)}" data-author-id="${escapeHtml(c.authorId || '')}">
             ${viewHtml}
@@ -335,7 +332,7 @@
     function closeModal() {
       const modal = document.getElementById('post-modal');
       modal.classList.remove('active');
-      modal.setAttribute('aria-hidden', 'true'); // ✅ FIX: Set aria-hidden to true when closing
+      modal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = 'auto';
       currentPostId = null;
       document.getElementById('modal-comment-text').value = '';
@@ -359,7 +356,6 @@
         } else {
           await updateDoc(postRef, { likes: arrayUnion(uid) });
         }
-        // UI will update in realtime via posts onSnapshot
       } catch (err) {
         console.error('Error toggling like:', err);
       }
@@ -388,7 +384,6 @@
           await updateDoc(postRef, { likes: arrayUnion(uid) });
         }
         
-        // UI will update in realtime via posts onSnapshot, but we can also update modal immediately
         const updatedPost = postsState.find(p => p.id === currentPostId);
         if (updatedPost) {
           const newLikesCount = Array.isArray(updatedPost.likes) ? updatedPost.likes.length : 0;
@@ -429,13 +424,12 @@
     // -----------------------------
     // COMMENTS: Add / Edit / Delete
     // -----------------------------
-    // Helper: generate a reasonably-unique id for comment (works in browsers)
     function generateCommentId() {
       if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
       return 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2,9);
     }
   
-    // Add comment (reads latest doc to avoid duplicates and then updates with full array)
+    // 🔧 FIX: Add comment - REMOVED optimistic update that causes duplicates
     document.getElementById('modal-comment-btn').addEventListener('click', async () => {
       const textEl = document.getElementById('modal-comment-text');
       const text = textEl.value.trim();
@@ -445,9 +439,15 @@
         window.location.href='auth.html'; 
         return; 
       }
+      
+      // Disable button to prevent double submission
+      const btn = document.getElementById('modal-comment-btn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Posting...';
+      
       try {
         const postRef = doc(db, 'posts', currentPostId);
-        // fetch latest post doc to get up-to-date comments
         const snapshot = await getDoc(postRef);
         const postData = snapshot.exists() ? snapshot.data() : {};
         const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
@@ -461,27 +461,26 @@
         };
   
         const newCommentsArray = [...existingComments, newComment];
-  
-        // update whole comments array (ensures single insertion)
         await updateDoc(postRef, { comments: newCommentsArray });
   
-        // clear input
+        // Clear input
         textEl.value = '';
   
-        // local optimistic update (will be replaced by realtime update shortly)
-        const postInState = postsState.find(p => p.id === currentPostId);
-        if (postInState) {
-          if (!Array.isArray(postInState.comments)) postInState.comments = [];
-          postInState.comments.push(newComment);
-          loadModalComments(postInState);
-        }
+        // 🔧 REMOVED: The optimistic update that was causing duplicates
+        // The real-time listener (onSnapshot) will automatically update the UI
+        // No need to manually push to postsState here
+        
       } catch (err) {
         console.error('Error adding comment', err);
         alert('Failed to add comment');
+      } finally {
+        // Re-enable button
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
     });
   
-    // Start editing: replace the comment DOM with an edit UI
+    // Start editing
     window.startEditComment = function(commentId) {
       if (!currentPostId) return;
       const post = postsState.find(p => p.id === currentPostId);
@@ -490,7 +489,6 @@
       const commentNode = commentsEl.querySelector(`[data-comment-id="${commentId}"]`);
       if (!commentNode) return;
   
-      // find the comment object
       const commentObj = (post.comments || []).find(c => (c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '')) === commentId);
       if (!commentObj) return;
       if (!window.currentUser || window.currentUser.uid !== commentObj.authorId) {
@@ -498,24 +496,23 @@
         return;
       }
   
-      // render edit UI
       commentNode.innerHTML = `
         <div class="meta">${escapeHtml(commentObj.authorName || 'You')} • ${commentObj.createdAt ? formatTimestamp(commentObj.createdAt) : ''}</div>
         <textarea class="edit-comment-text" rows="3">${escapeHtml(commentObj.text)}</textarea>
         <div class="comment-edit-actions">
-          <button class="btn-small" onclick="saveEditedComment('${commentId}')">Save</button>
+          <button class="btn-small" onclick="saveEditedComment('${commentId}')">Update</button>
           <button class="btn-small" onclick="cancelEditComment('${commentId}')">Cancel</button>
         </div>
       `;
     };
   
-    // Cancel edit: re-render modal comments from postsState
+    // Cancel edit
     window.cancelEditComment = function(commentId) {
       const post = postsState.find(p => p.id === currentPostId);
       if (post) loadModalComments(post);
     };
   
-    // Save edited comment: fetch latest comments, modify, update entire array
+    // 🔧 FIX: Save edited comment - REMOVED optimistic update
     window.saveEditedComment = async function(commentId) {
       if (!currentPostId) return;
       const postRef = doc(db, 'posts', currentPostId);
@@ -528,16 +525,20 @@
         const newText = textarea.value.trim();
         if (!newText) { alert('Comment cannot be empty'); return; }
   
-        // Get latest post comments
+        // Disable button
+        const updateBtn = commentNode.querySelector('.comment-edit-actions .btn-small');
+        if (updateBtn) {
+          updateBtn.disabled = true;
+          updateBtn.textContent = 'Updating...';
+        }
+  
         const snapshot = await getDoc(postRef);
         const postData = snapshot.exists() ? snapshot.data() : {};
         const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
   
-        // find and update
         const updatedComments = existingComments.map(c => {
           const cId = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '');
           if (cId === commentId) {
-            // only allow author to edit
             if (!window.currentUser || window.currentUser.uid !== c.authorId) {
               throw new Error('Unauthorized');
             }
@@ -546,25 +547,20 @@
           return c;
         });
   
-        // push update
         await updateDoc(postRef, { comments: updatedComments });
   
-        // optimistic local update
-        const postInState = postsState.find(p => p.id === currentPostId);
-        if (postInState) {
-          postInState.comments = updatedComments;
-          loadModalComments(postInState);
-        }
+        // 🔧 REMOVED: Optimistic local update
+        // The real-time listener will handle the UI update automatically
+        
       } catch (err) {
         console.error('Error saving edited comment', err);
         alert('Failed to save edited comment.');
-        // reload local to ensure consistent UI
-        const postInState = postsState.find(p => p.id === currentPostId);
-        if (postInState) loadModalComments(postInState);
+        const post = postsState.find(p => p.id === currentPostId);
+        if (post) loadModalComments(post);
       }
     };
   
-    // Delete comment: confirm + fetch latest + remove + update whole array
+    // 🔧 FIX: Delete comment - REMOVED optimistic update
     window.deleteComment = async function(commentId) {
       if (!currentPostId) return;
       if (!confirm('Delete this comment?')) return;
@@ -574,7 +570,6 @@
         const postData = snapshot.exists() ? snapshot.data() : {};
         const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
   
-        // find comment to check authorship
         const commentToDelete = existingComments.find(c => (c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '')) === commentId);
         if (!commentToDelete) {
           alert('Comment not found');
@@ -592,12 +587,9 @@
   
         await updateDoc(postRef, { comments: updatedComments });
   
-        // optimistic local update
-        const postInState = postsState.find(p => p.id === currentPostId);
-        if (postInState) {
-          postInState.comments = updatedComments;
-          loadModalComments(postInState);
-        }
+        // 🔧 REMOVED: Optimistic local update
+        // The real-time listener will handle the UI update automatically
+        
       } catch (err) {
         console.error('Error deleting comment', err);
         alert('Failed to delete comment');
@@ -614,7 +606,6 @@
       return div.innerHTML;
     }
   
-    // close modal by background
     document.getElementById('post-modal').addEventListener('click', function(e) { 
       if (e.target === this) closeModal(); 
     });
@@ -623,7 +614,6 @@
       if (e.key === 'Escape') closeModal(); 
     });
   
-    // handle logout
     window.handleLogout = async function() { 
       if(confirm('Logout?')) { 
         try { 
@@ -635,7 +625,6 @@
       } 
     };
   
-    // Expose functions globally for inline onclick handlers
     window.toggleLike = toggleLike;
     window.sharePostQuick = sharePostQuick;
     window.openModal = openModal;
@@ -644,7 +633,6 @@
     window.saveEditedComment = saveEditedComment;
     window.cancelEditComment = cancelEditComment;
     window.deleteComment = deleteComment;
-  
   </script>
   
 </body>

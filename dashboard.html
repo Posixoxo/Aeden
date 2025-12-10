@@ -8,12 +8,12 @@
     /* === your existing styles (mostly preserved) === */
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:"Montserrat", Lato;background:#EAEAEA;min-height:100vh}
-    .navbar{background-color:#1E1E1E;color:#EAEAEA;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px #3C3C3C}
+    .navbar{background-image: url(Images/See.jpg);color:#EAEAEA;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px #3C3C3C}
     .navbar-brand{font-size:24px;font-weight:bold}
     .navbar-brand a{color:#EAEAEA; text-decoration:none}
     .navbar-user{display:flex;align-items:center;gap:15px}
     .user-name{font-size:16px}
-    .logout-btn{background:#2A2A2A;color:#EAEAEA;border:1px solid #EAEAEA;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all .3s}
+    .logout-btn{background:#2A2A2A;color:#EAEAEA;border:1px solid #EAEAEA;font-weight: 600;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all .3s}
     .logout-btn:hover{background:#EAEAEA;color:#3C3C3C}
     .container{max-width:1200px;margin:0 auto;padding:40px 20px}
     .dashboard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
@@ -42,10 +42,12 @@
     .post-card h3{color:#333;margin-bottom:12px;font-size:20px}
     .post-content{color:#666;line-height:1.6;margin-bottom:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
     .post-meta{font-size:13px;color:#999;margin-bottom:15px}
-    .post-actions{display:flex;gap:10px}
-    .btn-small{padding:6px 15px;font-size:13px;border-radius:6px;border:none;cursor:pointer;transition:all .3s}
-    .btn-edit{background:#2A2A2A;color:#EAEAEA;border-radius:10px}
-    .btn-delete{background:#2A2A2A;color:#EAEAEA;border-radius:10px}
+    .post-actions{display:flex;gap:10px;}
+    .btn-small{padding:6px 15px;font-size:14px;border-radius:6px;font-weight:600; border:none;cursor:pointer;transition:all .3s;}
+    .btn-edit{color:hsl(238, 40%, 52%);border-radius:10px;}
+    .btn-edit img{width:13px;height:auto;margin-right:6px; max-width: 100%;}
+    .btn-delete{color:hsl(358, 79%, 66%);border-radius:10px;}
+    .btn-delete img{width:10px;height:auto;margin-right:6px; max-width: 100%;}
     .empty-state{text-align:center;padding:60px 20px;color:#999}
     .empty-state h3{font-size:24px;margin-bottom:10px}
     .loading{text-align:center;padding:40px;color:#999}
@@ -225,8 +227,8 @@
           <div class="post-content">${escapeHtml(excerpt)}</div>
           <div class="post-meta">Posted on ${date}</div>
           <div class="post-actions">
-            <button class="btn-small btn-edit" onclick="openPostModal('${id}')">Edit</button>
-            <button class="btn-small btn-delete" onclick="deletePost('${id}')">Delete</button>
+            <button class="btn-small btn-edit" onclick="openPostModal('${id}')"><img src="/Images/icon-edit.svg" alt="edit">Edit</button>
+            <button class="btn-small btn-delete" onclick="deletePost('${id}')"><img src="/Images/icon-delete.svg" alt="delete">Delete</button>
           </div>
         </div>
       `;

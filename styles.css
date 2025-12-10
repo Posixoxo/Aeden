@@ -1351,6 +1351,11 @@ body {
         padding: 0;
       }
 
+      .blog-section{
+        display: flex;
+        flex-direction: row;
+      }
+
       .animate {
         margin: 0;
         padding: 0;    

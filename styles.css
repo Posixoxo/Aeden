@@ -66,18 +66,20 @@ body {
 }
 
 .hero {
-    background-image: url('Images/See.jpg');
+    background-image: url(Images/See.jpg);
     background-size: cover;
     object-fit: cover;
     width: 100%;
     background-position: center;
-    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
     color: #EAEAEA;
+    height: 100vh;
+    position: relative;
 }
+
 .hero::before {
     content: '';
     position: absolute;
@@ -374,6 +376,8 @@ body {
     flex-direction: row;
     gap: 20px;
     margin-bottom: 50px;
+    align-items: center;
+    justify-content: center;
 }
 
 .butt2 button:hover {

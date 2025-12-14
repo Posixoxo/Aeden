@@ -185,6 +185,25 @@
         .back-to-login a:hover {
             opacity: 0.7;
         }
+
+        /* Forgot password link styling */
+        .forgot-password-link {
+            text-align: right;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password-link a {
+            color: #2A2A2A;
+            text-decoration: none;
+            font-size: 13px;
+            transition: opacity 0.3s;
+        }
+
+        .forgot-password-link a:hover {
+            opacity: 0.7;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -207,6 +226,9 @@
                     <div class="form-group">
                         <label>Password</label>
                         <input type="password" id="login-password" required>
+                    </div>
+                    <div class="forgot-password-link">
+                        <a href="#" onclick="switchTab('forgot-password'); return false;">Forgot Password?</a>
                     </div>
                     <button type="submit" class="submit-btn">LOGIN</button>
                 </form>
@@ -243,6 +265,23 @@
                     <a href="#" onclick="switchTab('login'); return false;">Already have an account? Login</a>
                 </div>
             </div>
+
+            <!-- Forgot Password Form -->
+            <div id="forgot-password-form" class="form-container">
+                <form onsubmit="handleForgotPassword(event)">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="forgot-email" required placeholder="Enter your registered email">
+                        <p style="text-align: center; margin-top: 20px;">Check spam folder if not received in mailbox.</p>
+                    </div>
+                    <button type="submit" class="submit-btn">Send Reset Link</button>
+                </form>
+
+                <!-- back to login link -->
+                <div class="back-to-login">
+                    <a href="#" onclick="switchTab('login'); return false;">Back to Login</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -250,7 +289,7 @@
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         const firebaseConfig = {
@@ -276,6 +315,7 @@
         window.updateProfile = updateProfile;
         window.setDoc = setDoc;
         window.doc = doc;
+        window.sendPasswordResetEmail = sendPasswordResetEmail;
     </script>
 
     <script>
@@ -298,6 +338,12 @@
                 // Update header text
                 authTitle.textContent = 'Create Account';
                 authSubtitle.textContent = 'Sign up to start posting amazing content';
+            } else if (tab === 'forgot-password') {
+                // Hide tab buttons on forgot password page
+                tabButtonsContainer.classList.add('hidden');
+                // Update header text
+                authTitle.textContent = 'Reset Password';
+                authSubtitle.textContent = 'Enter your email to receive a password reset link';
             } else {
                 // Show tab buttons on login page
                 tabButtonsContainer.classList.remove('hidden');
@@ -401,6 +447,43 @@
             } finally {
                 btn.classList.remove('loading');
                 btn.textContent = 'LOGIN';
+            }
+        }
+
+        // NEW: Handle Forgot Password
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            hideMessages();
+
+            const email = document.getElementById('forgot-email').value;
+
+            const btn = event.target.querySelector('.submit-btn');
+            btn.classList.add('loading');
+            btn.textContent = 'Sending...';
+
+            try {
+                await window.sendPasswordResetEmail(window.auth, email);
+                showSuccess('Password reset link sent! Please check your email inbox.');
+                
+                // Clear the input field
+                document.getElementById('forgot-email').value = '';
+                
+                // Optional: Redirect back to login after a delay
+                setTimeout(() => switchTab('login'), 3000);
+
+            } catch (error) {
+                let errorMessage = 'Failed to send reset link. Please try again.';
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'No account found with this email address.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'Too many requests. Please try again later.';
+                }
+                showError(errorMessage);
+            } finally {
+                btn.classList.remove('loading');
+                btn.textContent = 'Send Reset Link';
             }
         }
     </script>

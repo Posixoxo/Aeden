@@ -128,512 +128,512 @@
   </div>
 
   <!-- Firebase + logic -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-    import {
-      getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc,
-      arrayUnion, arrayRemove, serverTimestamp, getDoc
-    } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-  
-    // same config
-    const firebaseConfig = {
-      apiKey: "AIzaSyB34DhbeaIzmRFowWayXLgR68Zlv-dOqQA",
-      authDomain: "aeden-168f6.firebaseapp.com",
-      projectId: "aeden-168f6",
-      storageBucket: "aeden-168f6.firebasestorage.app",
-      messagingSenderId: "559755104565",
-      appId: "1:559755104565:web:9e0fc3c6c58f985c05bc7c",
-      measurementId: "G-K8R4B6EF1T"
-    };
-  
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-  
-    // expose
-    window.firebaseAuth = auth;
-    window.firebaseDb = db;
-  
-    const postsContainer = document.getElementById('posts-container');
-  
-    // real-time posts listener
-    const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    onSnapshot(postsQuery, (snapshot) => {
-      const posts = [];
-      snapshot.forEach(snap => posts.push({ id: snap.id, ...snap.data() }));
-      renderPosts(posts);
-      
-      // 🔧 FIX: Update modal comments if modal is open
-      if (currentPostId) {
-        const currentPost = posts.find(p => p.id === currentPostId);
-        if (currentPost) {
-          loadModalComments(currentPost);
-        }
-      }
-    }, (err) => {
-      console.error('Posts onSnapshot error:', err);
-      postsContainer.innerHTML = `<div class="empty-state"><h3>Error loading posts</h3><p>Please refresh the page.</p></div>`;
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+  import {
+    getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc,
+    arrayUnion, arrayRemove, serverTimestamp, getDoc
+  } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+  // same config
+  const firebaseConfig = {
+    apiKey: "AIzaSyB34DhbeaIzmRFowWayXLgR68Zlv-dOqQA",
+    authDomain: "aeden-168f6.firebaseapp.com",
+    projectId: "aeden-168f6",
+    storageBucket: "aeden-168f6.firebasestorage.app",
+    messagingSenderId: "559755104565",
+    appId: "1:559755104565:web:9e0fc3c6c58f985c05bc7c",
+    measurementId: "G-K8R4B6EF1T"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // expose
+  window.firebaseAuth = auth;
+  window.firebaseDb = db;
+
+  const postsContainer = document.getElementById('posts-container');
+
+  // real-time posts listener
+  const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+  onSnapshot(postsQuery, (snapshot) => {
+    const posts = [];
+    snapshot.forEach(snap => posts.push({ id: snap.id, ...snap.data() }));
+    
+    // apply weighted randomization (newer posts slightly favored)
+    const weightedPosts = [];
+    posts.forEach((post, index) => {
+      // weight factor: newer posts get slightly higher chance
+      const weight = 1 + (posts.length - index) * 0.05; // tweak 0.05 for bias
+      for (let i = 0; i < weight; i++) weightedPosts.push(post);
     });
-  
-    // update auth UI links
-    onAuthStateChanged(auth, (user) => {
-      const authLinks = document.getElementById('auth-links');
-      if (user) {
-        authLinks.innerHTML = `<a href="dashboard.html" class="nav-link">My Dashboard</a><a href="#" class="nav-link primary" onclick="handleLogout(); return false;">Logout</a>`;
-        window.currentUser = user;
-      } else {
-        authLinks.innerHTML = `<a href="auth.html" class="nav-link primary">Login</a>`;
-        window.currentUser = null;
+    const shuffledPosts = weightedPosts
+      .sort(() => Math.random() - 0.5)  // simple shuffle
+      .slice(0, posts.length);          // trim back to original count
+
+    renderPosts(shuffledPosts);
+
+    // 🔧 FIX: Update modal comments if modal is open
+    if (currentPostId) {
+      const currentPost = posts.find(p => p.id === currentPostId);
+      if (currentPost) {
+        loadModalComments(currentPost);
       }
-    });
-  
-    // render posts
-    let postsState = [];
-    function renderPosts(posts) {
-      postsState = posts;
-      if (!posts || posts.length === 0) {
-        postsContainer.innerHTML = `<div class="empty-state"><h3>No posts yet</h3><p>Be the first to share your thoughts!</p></div>`;
-        return;
-      }
-      postsContainer.innerHTML = '';
-      posts.forEach(post => postsContainer.innerHTML += createPostCard(post));
     }
-  
-    function createPostCard(post) {
-      const date = post.createdAt && post.createdAt.toDate ? post.createdAt.toDate().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) : (post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '');
-      const excerpt = (post.content || '').replace(/<\/?[^>]+(>|$)/g, '').slice(0,200) + ((post.content && post.content.length>200)?'...':'');
-      const imagesHtml = post.images && post.images.length ? `<div class="post-images">${post.images.map(img=>`<img src="${img.url}" alt="Post image">`).join('')}</div>` : '';
-      const likesCount = Array.isArray(post.likes) ? post.likes.length : (post.likes || 0);
-      const likedClass = (window.currentUser && Array.isArray(post.likes) && post.likes.includes(window.currentUser.uid)) ? 'liked' : '';
-      
-      // Get comments count from array
-      const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
-      const commentsPreview = Array.isArray(post.comments) && post.comments.length > 0 
-        ? post.comments.slice(-2).reverse().map(c => `<div class="comment"><div class="meta">${escapeHtml(c.authorName || 'Someone')} • ${c.createdAt ? formatTimestamp(c.createdAt) : ''}</div><div>${escapeHtml(c.text)}</div></div>`).join('')
-        : '<div class="small-muted">Be the first to comment</div>';
-      
+  }, (err) => {
+    console.error('Posts onSnapshot error:', err);
+    postsContainer.innerHTML = `<div class="empty-state"><h3>Error loading posts</h3><p>Please refresh the page.</p></div>`;
+  });
+
+  // update auth UI links
+  onAuthStateChanged(auth, (user) => {
+    const authLinks = document.getElementById('auth-links');
+    if (user) {
+      authLinks.innerHTML = `<a href="dashboard.html" class="nav-link">My Dashboard</a><a href="#" class="nav-link primary" onclick="handleLogout(); return false;">Logout</a>`;
+      window.currentUser = user;
+    } else {
+      authLinks.innerHTML = `<a href="auth.html" class="nav-link primary">Login</a>`;
+      window.currentUser = null;
+    }
+  });
+
+  // render posts
+  let postsState = [];
+  function renderPosts(posts) {
+    postsState = posts;
+    if (!posts || posts.length === 0) {
+      postsContainer.innerHTML = `<div class="empty-state"><h3>No posts yet</h3><p>Be the first to share your thoughts!</p></div>`;
+      return;
+    }
+    postsContainer.innerHTML = '';
+    posts.forEach(post => postsContainer.innerHTML += createPostCard(post));
+  }
+
+  function createPostCard(post) {
+    const date = post.createdAt && post.createdAt.toDate ? post.createdAt.toDate().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) : (post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '');
+    const excerpt = (post.content || '').replace(/<\/?[^>]+(>|$)/g, '').slice(0,200) + ((post.content && post.content.length>200)?'...':'');
+    const imagesHtml = post.images && post.images.length ? `<div class="post-images">${post.images.map(img=>`<img src="${img.url}" alt="Post image">`).join('')}</div>` : '';
+    const likesCount = Array.isArray(post.likes) ? post.likes.length : (post.likes || 0);
+    const likedClass = (window.currentUser && Array.isArray(post.likes) && post.likes.includes(window.currentUser.uid)) ? 'liked' : '';
+    
+    // Get comments count from array
+    const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
+    const commentsPreview = Array.isArray(post.comments) && post.comments.length > 0 
+      ? post.comments.slice(-2).reverse().map(c => `<div class="comment"><div class="meta">${escapeHtml(c.authorName || 'Someone')} • ${c.createdAt ? formatTimestamp(c.createdAt) : ''}</div><div>${escapeHtml(c.text)}</div></div>`).join('')
+      : '<div class="small-muted">Be the first to comment</div>';
+    
+    return `
+      <div class="post-card" id="post-${post.id}">
+        <div class="post-header">
+          <h2>${escapeHtml(post.title)}</h2>
+          <div class="post-author">By ${escapeHtml(post.authorName || 'Unknown')}</div>
+          <div class="post-date">${date}</div>
+        </div>
+        ${imagesHtml}
+        <div class="post-content">${truncateHtml(post.content, 300)}</div>
+        <div class="post-actions">
+          <button class="action-btn ${likedClass}" onclick="toggleLike('${post.id}', event)">
+            <span class="icon">❤️</span>
+            <span id="likes-${post.id}">${likesCount}</span>
+          </button>
+          <button class="action-btn" onclick="sharePostQuick('${post.id}')"><span class="icon">📤</span>Share</button>
+          <button class="action-btn" onclick="window.location.href='subscribe.html'"><span class="icon">📧</span>Subscribe</button>
+          <button class="read-more-btn" onclick="openModal('${post.id}')">Read Full Post</button>
+        </div>
+        <div class="comments">
+          ${commentsPreview}
+          ${commentsCount > 2 ? `<div class="small-muted">+ ${commentsCount - 2} more comments — open post to view all</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // helper: basic HTML truncation (keeps tags)
+  function truncateHtml(html, maxLen) {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    const text = temp.textContent || temp.innerText || '';
+    if (text.length <= maxLen) return escapeHtml(text);
+    return escapeHtml(text.slice(0, maxLen)) + '...';
+  }
+
+  // helper: format timestamp
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    if (timestamp.toDate) return timestamp.toDate().toLocaleString();
+    if (timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleString();
+    return new Date(timestamp).toLocaleString();
+  }
+
+  // open modal
+  let currentPostId = null;
+  function openModal(postId) {
+    const post = postsState.find(p => p.id === postId);
+    if (!post) return;
+    currentPostId = postId;
+    
+    const modal = document.getElementById('post-modal');
+    modal.setAttribute('aria-hidden', 'false');
+    
+    document.getElementById('modal-title').textContent = post.title;
+    document.getElementById('modal-author').textContent = `By ${post.authorName || 'Unknown'}`;
+    const date = post.createdAt && post.createdAt.toDate ? post.createdAt.toDate().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) : '';
+    document.getElementById('modal-date').textContent = date;
+    
+    const modalContent = document.getElementById('modal-content');
+    modalContent.innerHTML = post.content || '';
+    
+    const modalImages = document.getElementById('modal-images');
+    if (post.images && post.images.length) {
+      modalImages.innerHTML = post.images.map(img => `<img src="${img.url}" alt="Post image">`).join('');
+    } else modalImages.innerHTML = '';
+    
+    const likesCount = Array.isArray(post.likes) ? post.likes.length : (post.likes || 0);
+    document.getElementById('modal-like-count').textContent = likesCount;
+    
+    const modalLikeBtn = document.getElementById('modal-like-btn');
+    if (window.currentUser && Array.isArray(post.likes) && post.likes.includes(window.currentUser.uid)) {
+      modalLikeBtn.classList.add('liked');
+    } else {
+      modalLikeBtn.classList.remove('liked');
+    }
+    
+    loadModalComments(post);
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  // Load comments from post.comments array
+  function loadModalComments(post) {
+    const comments = Array.isArray(post.comments) ? post.comments : [];
+    const commentsEl = document.getElementById('modal-comments');
+    
+    if (comments.length === 0) {
+      commentsEl.innerHTML = '<div class="small-muted">No comments yet</div>';
+      return;
+    }
+
+    commentsEl.innerHTML = comments.map(c => {
+      const id = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : `${c.authorId}-${Math.random().toString(36).slice(2,9)}`);
+      const authorIsCurrent = window.currentUser && window.currentUser.uid === c.authorId;
+      const viewHtml = `
+        <div class="meta">${escapeHtml(c.authorName || 'Someone')} • ${c.createdAt ? formatTimestamp(c.createdAt) : ''}</div>
+        <div class="text">${escapeHtml(c.text)}</div>
+      `;
+      const controls = authorIsCurrent ? `
+        <div class="comment-controls">
+          <button class="btn-small" onclick="startEditComment('${escapeHtml(id)}')">Edit</button>
+          <button class="btn-small btn-danger" onclick="deleteComment('${escapeHtml(id)}')">Delete</button>
+        </div>
+      ` : '';
       return `
-        <div class="post-card" id="post-${post.id}">
-          <div class="post-header">
-            <h2>${escapeHtml(post.title)}</h2>
-            <div class="post-author">By ${escapeHtml(post.authorName || 'Unknown')}</div>
-            <div class="post-date">${date}</div>
-          </div>
-          ${imagesHtml}
-          <div class="post-content">${truncateHtml(post.content, 300)}</div>
-          <div class="post-actions">
-            <button class="action-btn ${likedClass}" onclick="toggleLike('${post.id}', event)">
-              <span class="icon">❤️</span>
-              <span id="likes-${post.id}">${likesCount}</span>
-            </button>
-            <button class="action-btn" onclick="sharePostQuick('${post.id}')"><span class="icon">📤</span>Share</button>
-            <button class="action-btn" onclick="window.location.href='subscribe.html'"><span class="icon">📧</span>Subscribe</button>
-            <button class="read-more-btn" onclick="openModal('${post.id}')">Read Full Post</button>
-          </div>
-          <div class="comments">
-            ${commentsPreview}
-            ${commentsCount > 2 ? `<div class="small-muted">+ ${commentsCount - 2} more comments — open post to view all</div>` : ''}
-          </div>
+        <div class="comment" data-comment-id="${escapeHtml(id)}" data-author-id="${escapeHtml(c.authorId || '')}">
+          ${viewHtml}
+          ${controls}
         </div>
       `;
+    }).join('');
+  }
+
+  // close
+  function closeModal() {
+    const modal = document.getElementById('post-modal');
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = 'auto';
+    currentPostId = null;
+    document.getElementById('modal-comment-text').value = '';
+  }
+
+  // toggling likes (arrayUnion / arrayRemove)
+  async function toggleLike(postId, event) {
+    if (event) event.stopPropagation();
+    if (!window.currentUser) {
+      alert('Please login to like posts!');
+      window.location.href = 'auth.html';
+      return;
     }
-  
-    // helper: basic HTML truncation (keeps tags)
-    function truncateHtml(html, maxLen) {
-      if (!html) return '';
-      const temp = document.createElement('div');
-      temp.innerHTML = html;
-      const text = temp.textContent || temp.innerText || '';
-      if (text.length <= maxLen) return escapeHtml(text);
-      return escapeHtml(text.slice(0, maxLen)) + '...';
-    }
-  
-    // helper: format timestamp
-    function formatTimestamp(timestamp) {
-      if (!timestamp) return '';
-      if (timestamp.toDate) return timestamp.toDate().toLocaleString();
-      if (timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleString();
-      return new Date(timestamp).toLocaleString();
-    }
-  
-    // open modal
-    let currentPostId = null;
-    function openModal(postId) {
+    try {
+      const postRef = doc(db, 'posts', postId);
       const post = postsState.find(p => p.id === postId);
-      if (!post) return;
-      currentPostId = postId;
-      
-      const modal = document.getElementById('post-modal');
-      modal.setAttribute('aria-hidden', 'false');
-      
-      document.getElementById('modal-title').textContent = post.title;
-      document.getElementById('modal-author').textContent = `By ${post.authorName || 'Unknown'}`;
-      const date = post.createdAt && post.createdAt.toDate ? post.createdAt.toDate().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) : '';
-      document.getElementById('modal-date').textContent = date;
-      
-      const modalContent = document.getElementById('modal-content');
-      modalContent.innerHTML = post.content || '';
-      
-      const modalImages = document.getElementById('modal-images');
-      if (post.images && post.images.length) {
-        modalImages.innerHTML = post.images.map(img => `<img src="${img.url}" alt="Post image">`).join('');
-      } else modalImages.innerHTML = '';
-      
-      const likesCount = Array.isArray(post.likes) ? post.likes.length : (post.likes || 0);
-      document.getElementById('modal-like-count').textContent = likesCount;
-      
-      const modalLikeBtn = document.getElementById('modal-like-btn');
-      if (window.currentUser && Array.isArray(post.likes) && post.likes.includes(window.currentUser.uid)) {
-        modalLikeBtn.classList.add('liked');
+      const likes = Array.isArray(post.likes) ? post.likes : [];
+      const uid = window.currentUser.uid;
+      if (likes.includes(uid)) {
+        await updateDoc(postRef, { likes: arrayRemove(uid) });
       } else {
-        modalLikeBtn.classList.remove('liked');
+        await updateDoc(postRef, { likes: arrayUnion(uid) });
       }
-      
-      loadModalComments(post);
-      
-      modal.classList.add('active');
-      document.body.style.overflow = 'hidden';
+    } catch (err) {
+      console.error('Error toggling like:', err);
     }
-  
-    // Load comments from post.comments array
-    function loadModalComments(post) {
-      const comments = Array.isArray(post.comments) ? post.comments : [];
-      const commentsEl = document.getElementById('modal-comments');
-      
-      if (comments.length === 0) {
-        commentsEl.innerHTML = '<div class="small-muted">No comments yet</div>';
-        return;
-      }
-  
-      commentsEl.innerHTML = comments.map(c => {
-        const id = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : `${c.authorId}-${Math.random().toString(36).slice(2,9)}`);
-        const authorIsCurrent = window.currentUser && window.currentUser.uid === c.authorId;
-        const viewHtml = `
-          <div class="meta">${escapeHtml(c.authorName || 'Someone')} • ${c.createdAt ? formatTimestamp(c.createdAt) : ''}</div>
-          <div class="text">${escapeHtml(c.text)}</div>
-        `;
-        const controls = authorIsCurrent ? `
-          <div class="comment-controls">
-            <button class="btn-small" onclick="startEditComment('${escapeHtml(id)}')">Edit</button>
-            <button class="btn-small btn-danger" onclick="deleteComment('${escapeHtml(id)}')">Delete</button>
-          </div>
-        ` : '';
-        return `
-          <div class="comment" data-comment-id="${escapeHtml(id)}" data-author-id="${escapeHtml(c.authorId || '')}">
-            ${viewHtml}
-            ${controls}
-          </div>
-        `;
-      }).join('');
+  }
+
+  // modal like (similar)
+  document.getElementById('modal-like-btn').addEventListener('click', async (e) => {
+    if (!currentPostId) return;
+    e.stopPropagation();
+    
+    if (!window.currentUser) {
+      alert('Please login to like posts!');
+      window.location.href = 'auth.html';
+      return;
     }
-  
-    // close
-    function closeModal() {
-      const modal = document.getElementById('post-modal');
-      modal.classList.remove('active');
-      modal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = 'auto';
-      currentPostId = null;
-      document.getElementById('modal-comment-text').value = '';
-    }
-  
-    // toggling likes (arrayUnion / arrayRemove)
-    async function toggleLike(postId, event) {
-      if (event) event.stopPropagation();
-      if (!window.currentUser) {
-        alert('Please login to like posts!');
-        window.location.href = 'auth.html';
-        return;
-      }
-      try {
-        const postRef = doc(db, 'posts', postId);
-        const post = postsState.find(p => p.id === postId);
-        const likes = Array.isArray(post.likes) ? post.likes : [];
-        const uid = window.currentUser.uid;
-        if (likes.includes(uid)) {
-          await updateDoc(postRef, { likes: arrayRemove(uid) });
-        } else {
-          await updateDoc(postRef, { likes: arrayUnion(uid) });
-        }
-      } catch (err) {
-        console.error('Error toggling like:', err);
-      }
-    }
-  
-    // modal like (similar)
-    document.getElementById('modal-like-btn').addEventListener('click', async (e) => {
-      if (!currentPostId) return;
-      e.stopPropagation();
-      
-      if (!window.currentUser) {
-        alert('Please login to like posts!');
-        window.location.href = 'auth.html';
-        return;
-      }
-      
-      try {
-        const postRef = doc(db, 'posts', currentPostId);
-        const post = postsState.find(p => p.id === currentPostId);
-        const likes = Array.isArray(post.likes) ? post.likes : [];
-        const uid = window.currentUser.uid;
-        
-        if (likes.includes(uid)) {
-          await updateDoc(postRef, { likes: arrayRemove(uid) });
-        } else {
-          await updateDoc(postRef, { likes: arrayUnion(uid) });
-        }
-        
-        const updatedPost = postsState.find(p => p.id === currentPostId);
-        if (updatedPost) {
-          const newLikesCount = Array.isArray(updatedPost.likes) ? updatedPost.likes.length : 0;
-          document.getElementById('modal-like-count').textContent = newLikesCount;
-          
-          const modalLikeBtn = document.getElementById('modal-like-btn');
-          if (updatedPost.likes && updatedPost.likes.includes(uid)) {
-            modalLikeBtn.classList.add('liked');
-          } else {
-            modalLikeBtn.classList.remove('liked');
-          }
-        }
-      } catch (err) {
-        console.error('Error toggling like:', err);
-        alert('Failed to like post. Please try again.');
-      }
-    });
-  
-    // share
-    function sharePostQuick(postId) {
-      const post = postsState.find(p => p.id === postId);
-      if (!post) return;
-      const shareText = `Check out this post: ${post.title}`;
-      const shareUrl = `${window.location.origin}/blog.html#post-${postId}`;
-      if (navigator.share) {
-        navigator.share({ title: post.title, text: shareText, url: shareUrl }).catch(err => console.log(err));
-      } else {
-        navigator.clipboard.writeText(shareUrl);
-        alert('Link copied to clipboard!');
-      }
-    }
-  
-    // modal share button
-    document.getElementById('modal-share-btn').addEventListener('click', () => {
-      if (currentPostId) sharePostQuick(currentPostId);
-    });
-  
-    // -----------------------------
-    // COMMENTS: Add / Edit / Delete
-    // -----------------------------
-    function generateCommentId() {
-      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-      return 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2,9);
-    }
-  
-    // 🔧 FIX: Add comment - REMOVED optimistic update that causes duplicates
-    document.getElementById('modal-comment-btn').addEventListener('click', async () => {
-      const textEl = document.getElementById('modal-comment-text');
-      const text = textEl.value.trim();
-      if (!text) return;
-      if (!window.currentUser) { 
-        alert('Please login to comment'); 
-        window.location.href='auth.html'; 
-        return; 
-      }
-      
-      // Disable button to prevent double submission
-      const btn = document.getElementById('modal-comment-btn');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Posting...';
-      
-      try {
-        const postRef = doc(db, 'posts', currentPostId);
-        const snapshot = await getDoc(postRef);
-        const postData = snapshot.exists() ? snapshot.data() : {};
-        const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
-  
-        const newComment = {
-          id: generateCommentId(),
-          text,
-          authorId: window.currentUser.uid,
-          authorName: window.currentUser.displayName || window.currentUser.email,
-          createdAt: new Date().toISOString()
-        };
-  
-        const newCommentsArray = [...existingComments, newComment];
-        await updateDoc(postRef, { comments: newCommentsArray });
-  
-        // Clear input
-        textEl.value = '';
-  
-        // 🔧 REMOVED: The optimistic update that was causing duplicates
-        // The real-time listener (onSnapshot) will automatically update the UI
-        // No need to manually push to postsState here
-        
-      } catch (err) {
-        console.error('Error adding comment', err);
-        alert('Failed to add comment');
-      } finally {
-        // Re-enable button
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    });
-  
-    // Start editing
-    window.startEditComment = function(commentId) {
-      if (!currentPostId) return;
+    
+    try {
+      const postRef = doc(db, 'posts', currentPostId);
       const post = postsState.find(p => p.id === currentPostId);
-      if (!post) return;
+      const likes = Array.isArray(post.likes) ? post.likes : [];
+      const uid = window.currentUser.uid;
+      
+      if (likes.includes(uid)) {
+        await updateDoc(postRef, { likes: arrayRemove(uid) });
+      } else {
+        await updateDoc(postRef, { likes: arrayUnion(uid) });
+      }
+      
+      const updatedPost = postsState.find(p => p.id === currentPostId);
+      if (updatedPost) {
+        const newLikesCount = Array.isArray(updatedPost.likes) ? updatedPost.likes.length : 0;
+        document.getElementById('modal-like-count').textContent = newLikesCount;
+        
+        const modalLikeBtn = document.getElementById('modal-like-btn');
+        if (updatedPost.likes && updatedPost.likes.includes(uid)) {
+          modalLikeBtn.classList.add('liked');
+        } else {
+          modalLikeBtn.classList.remove('liked');
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      alert('Failed to like post. Please try again.');
+    }
+  });
+
+  // share
+  function sharePostQuick(postId) {
+    const post = postsState.find(p => p.id === postId);
+    if (!post) return;
+    const shareText = `Check out this post: ${post.title}`;
+    const shareUrl = `${window.location.origin}/blog.html#post-${postId}`;
+    if (navigator.share) {
+      navigator.share({ title: post.title, text: shareText, url: shareUrl }).catch(err => console.log(err));
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      alert('Link copied to clipboard!');
+    }
+  }
+
+  // modal share button
+  document.getElementById('modal-share-btn').addEventListener('click', () => {
+    if (currentPostId) sharePostQuick(currentPostId);
+  });
+
+  // -----------------------------
+  // COMMENTS: Add / Edit / Delete
+  // -----------------------------
+  function generateCommentId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2,9);
+  }
+
+  // 🔧 FIX: Add comment - REMOVED optimistic update that causes duplicates
+  document.getElementById('modal-comment-btn').addEventListener('click', async () => {
+    const textEl = document.getElementById('modal-comment-text');
+    const text = textEl.value.trim();
+    if (!text) return;
+    if (!window.currentUser) { 
+      alert('Please login to comment'); 
+      window.location.href='auth.html'; 
+      return; 
+    }
+    
+    // Disable button to prevent double submission
+    const btn = document.getElementById('modal-comment-btn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Posting...';
+    
+    try {
+      const postRef = doc(db, 'posts', currentPostId);
+      const snapshot = await getDoc(postRef);
+      const postData = snapshot.exists() ? snapshot.data() : {};
+      const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
+
+      const newComment = {
+        id: generateCommentId(),
+        text,
+        authorId: window.currentUser.uid,
+        authorName: window.currentUser.displayName || window.currentUser.email,
+        createdAt: new Date().toISOString()
+      };
+
+      const newCommentsArray = [...existingComments, newComment];
+      await updateDoc(postRef, { comments: newCommentsArray });
+
+      // Clear input
+      textEl.value = '';
+    } catch (err) {
+      console.error('Error adding comment', err);
+      alert('Failed to add comment');
+    } finally {
+      // Re-enable button
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
+  // Start editing
+  window.startEditComment = function(commentId) {
+    if (!currentPostId) return;
+    const post = postsState.find(p => p.id === currentPostId);
+    if (!post) return;
+    const commentsEl = document.getElementById('modal-comments');
+    const commentNode = commentsEl.querySelector(`[data-comment-id="${commentId}"]`);
+    if (!commentNode) return;
+
+    const commentObj = (post.comments || []).find(c => (c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '')) === commentId);
+    if (!commentObj) return;
+    if (!window.currentUser || window.currentUser.uid !== commentObj.authorId) {
+      alert('You can only edit your own comments.');
+      return;
+    }
+
+    commentNode.innerHTML = `
+      <div class="meta">${escapeHtml(commentObj.authorName || 'You')} • ${commentObj.createdAt ? formatTimestamp(commentObj.createdAt) : ''}</div>
+      <textarea class="edit-comment-text" rows="3">${escapeHtml(commentObj.text)}</textarea>
+      <div class="comment-edit-actions">
+        <button class="btn-small" onclick="saveEditedComment('${commentId}')">Update</button>
+        <button class="btn-small" onclick="cancelEditComment('${commentId}')">Cancel</button>
+      </div>
+    `;
+  };
+
+  // Cancel edit
+  window.cancelEditComment = function(commentId) {
+    const post = postsState.find(p => p.id === currentPostId);
+    if (post) loadModalComments(post);
+  };
+
+  // 🔧 FIX: Save edited comment - REMOVED optimistic update
+  window.saveEditedComment = async function(commentId) {
+    if (!currentPostId) return;
+    const postRef = doc(db, 'posts', currentPostId);
+    try {
       const commentsEl = document.getElementById('modal-comments');
       const commentNode = commentsEl.querySelector(`[data-comment-id="${commentId}"]`);
       if (!commentNode) return;
-  
-      const commentObj = (post.comments || []).find(c => (c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '')) === commentId);
-      if (!commentObj) return;
-      if (!window.currentUser || window.currentUser.uid !== commentObj.authorId) {
-        alert('You can only edit your own comments.');
-        return;
+      const textarea = commentNode.querySelector('.edit-comment-text');
+      if (!textarea) return;
+      const newText = textarea.value.trim();
+      if (!newText) { alert('Comment cannot be empty'); return; }
+
+      // Disable button
+      const updateBtn = commentNode.querySelector('.comment-edit-actions .btn-small');
+      if (updateBtn) {
+        updateBtn.disabled = true;
+        updateBtn.textContent = 'Updating...';
       }
-  
-      commentNode.innerHTML = `
-        <div class="meta">${escapeHtml(commentObj.authorName || 'You')} • ${commentObj.createdAt ? formatTimestamp(commentObj.createdAt) : ''}</div>
-        <textarea class="edit-comment-text" rows="3">${escapeHtml(commentObj.text)}</textarea>
-        <div class="comment-edit-actions">
-          <button class="btn-small" onclick="saveEditedComment('${commentId}')">Update</button>
-          <button class="btn-small" onclick="cancelEditComment('${commentId}')">Cancel</button>
-        </div>
-      `;
-    };
-  
-    // Cancel edit
-    window.cancelEditComment = function(commentId) {
+
+      const snapshot = await getDoc(postRef);
+      const postData = snapshot.exists() ? snapshot.data() : {};
+      const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
+
+      const updatedComments = existingComments.map(c => {
+        const cId = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '');
+        if (cId === commentId) {
+          if (!window.currentUser || window.currentUser.uid !== c.authorId) {
+            throw new Error('Unauthorized');
+          }
+          return { ...c, text: newText, editedAt: new Date().toISOString() };
+        }
+        return c;
+      });
+
+      await updateDoc(postRef, { comments: updatedComments });
+    } catch (err) {
+      console.error('Error saving edited comment', err);
+      alert('Failed to save edited comment.');
       const post = postsState.find(p => p.id === currentPostId);
       if (post) loadModalComments(post);
-    };
-  
-    // 🔧 FIX: Save edited comment - REMOVED optimistic update
-    window.saveEditedComment = async function(commentId) {
-      if (!currentPostId) return;
-      const postRef = doc(db, 'posts', currentPostId);
-      try {
-        const commentsEl = document.getElementById('modal-comments');
-        const commentNode = commentsEl.querySelector(`[data-comment-id="${commentId}"]`);
-        if (!commentNode) return;
-        const textarea = commentNode.querySelector('.edit-comment-text');
-        if (!textarea) return;
-        const newText = textarea.value.trim();
-        if (!newText) { alert('Comment cannot be empty'); return; }
-  
-        // Disable button
-        const updateBtn = commentNode.querySelector('.comment-edit-actions .btn-small');
-        if (updateBtn) {
-          updateBtn.disabled = true;
-          updateBtn.textContent = 'Updating...';
-        }
-  
-        const snapshot = await getDoc(postRef);
-        const postData = snapshot.exists() ? snapshot.data() : {};
-        const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
-  
-        const updatedComments = existingComments.map(c => {
-          const cId = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '');
-          if (cId === commentId) {
-            if (!window.currentUser || window.currentUser.uid !== c.authorId) {
-              throw new Error('Unauthorized');
-            }
-            return { ...c, text: newText, editedAt: new Date().toISOString() };
-          }
-          return c;
-        });
-  
-        await updateDoc(postRef, { comments: updatedComments });
-  
-        // 🔧 REMOVED: Optimistic local update
-        // The real-time listener will handle the UI update automatically
-        
-      } catch (err) {
-        console.error('Error saving edited comment', err);
-        alert('Failed to save edited comment.');
-        const post = postsState.find(p => p.id === currentPostId);
-        if (post) loadModalComments(post);
-      }
-    };
-  
-    // 🔧 FIX: Delete comment - REMOVED optimistic update
-    window.deleteComment = async function(commentId) {
-      if (!currentPostId) return;
-      if (!confirm('Delete this comment?')) return;
-      const postRef = doc(db, 'posts', currentPostId);
-      try {
-        const snapshot = await getDoc(postRef);
-        const postData = snapshot.exists() ? snapshot.data() : {};
-        const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
-  
-        const commentToDelete = existingComments.find(c => (c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '')) === commentId);
-        if (!commentToDelete) {
-          alert('Comment not found');
-          return;
-        }
-        if (!window.currentUser || window.currentUser.uid !== commentToDelete.authorId) {
-          alert('You can only delete your own comments.');
-          return;
-        }
-  
-        const updatedComments = existingComments.filter(c => {
-          const cId = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '');
-          return cId !== commentId;
-        });
-  
-        await updateDoc(postRef, { comments: updatedComments });
-  
-        // 🔧 REMOVED: Optimistic local update
-        // The real-time listener will handle the UI update automatically
-        
-      } catch (err) {
-        console.error('Error deleting comment', err);
-        alert('Failed to delete comment');
-      }
-    };
-  
-    // -----------------------------
-    // global helpers
-    // -----------------------------
-    function escapeHtml(text) {
-      if (!text) return '';
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
     }
+  };
+
+  // 🔧 FIX: Delete comment - REMOVED optimistic update
+  window.deleteComment = async function(commentId) {
+    if (!currentPostId) return;
+    if (!confirm('Delete this comment?')) return;
+    const postRef = doc(db, 'posts', currentPostId);
+    try {
+      const snapshot = await getDoc(postRef);
+      const postData = snapshot.exists() ? snapshot.data() : {};
+      const existingComments = Array.isArray(postData.comments) ? postData.comments : [];
+
+      const commentToDelete = existingComments.find(c => (c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '')) === commentId);
+      if (!commentToDelete) {
+        alert('Comment not found');
+        return;
+      }
+      if (!window.currentUser || window.currentUser.uid !== commentToDelete.authorId) {
+        alert('You can only delete your own comments.');
+        return;
+      }
+
+      const updatedComments = existingComments.filter(c => {
+        const cId = c.id || (c.createdAt ? `${c.authorId}-${new Date(c.createdAt).getTime()}` : '');
+        return cId !== commentId;
+      });
+
+      await updateDoc(postRef, { comments: updatedComments });
+    } catch (err) {
+      console.error('Error deleting comment', err);
+      alert('Failed to delete comment');
+    }
+  };
+
+  // -----------------------------
+  // global helpers
+  // -----------------------------
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  document.getElementById('post-modal').addEventListener('click', function(e) { 
+    if (e.target === this) closeModal(); 
+  });
   
-    document.getElementById('post-modal').addEventListener('click', function(e) { 
-      if (e.target === this) closeModal(); 
-    });
-    
-    document.addEventListener('keydown', (e)=> { 
-      if (e.key === 'Escape') closeModal(); 
-    });
-  
-    window.handleLogout = async function() { 
-      if(confirm('Logout?')) { 
-        try { 
-          await auth.signOut(); 
-          window.location.href='auth.html'; 
-        } catch(e) {
-          console.error(e);
-        } 
+  document.addEventListener('keydown', (e)=> { 
+    if (e.key === 'Escape') closeModal(); 
+  });
+
+  window.handleLogout = async function() { 
+    if(confirm('Logout?')) { 
+      try { 
+        await auth.signOut(); 
+        window.location.href='auth.html'; 
+      } catch(e) {
+        console.error(e);
       } 
-    };
-  
-    window.toggleLike = toggleLike;
-    window.sharePostQuick = sharePostQuick;
-    window.openModal = openModal;
-    window.closeModal = closeModal;
-    window.startEditComment = startEditComment;
-    window.saveEditedComment = saveEditedComment;
-    window.cancelEditComment = cancelEditComment;
-    window.deleteComment = deleteComment;
-  </script>
+    } 
+  };
+
+  window.toggleLike = toggleLike;
+  window.sharePostQuick = sharePostQuick;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.startEditComment = startEditComment;
+  window.saveEditedComment = saveEditedComment;
+  window.cancelEditComment = cancelEditComment;
+  window.deleteComment = deleteComment;
+</script>
+
   
 </body>
 </html>
